@@ -1,0 +1,43 @@
+* {
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+  font-family: calibri;
+}
+html,
+body {
+  margin: 0px;
+  direction: rtl;
+
+}
+body{
+  overflow-x: hidden;
+}
+/* a blue color as a generic focus style */
+button:focus-visible {
+  outline: 2px solid #4a90e2 !important;
+  outline: -webkit-focus-ring-color auto 5px !important;
+}
+a {
+  text-decoration: none;
+}
+
+
+/* @font-face {
+  font-family: 'Vazir';
+  src:url('static/Vazir-FD-WOL.ttf.woff') format('woff'),
+      url('static/Vazir-FD-WOL.ttf.svg#Vazir-FD-WOL') format('svg'),
+      url('static/Vazir-FD-WOL.ttf.eot'),
+      url('static/Vazir-FD-WOL.ttf.eot?#iefix') format('embedded-opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Vazir';
+  src:url('static/Vazir-Bold-FD-WOL.ttf.woff') format('woff'),
+      url('static/Vazir-Bold-FD-WOL.ttf.svg#Vazir-Bold-FD-WOL') format('svg'),
+      url('static/Vazir-Bold-FD-WOL.ttf.eot'),
+      url('static/Vazir-Bold-FD-WOL.ttf.eot?#iefix') format('embedded-opentype');
+  font-weight: bold;
+  font-style: normal;
+} */
