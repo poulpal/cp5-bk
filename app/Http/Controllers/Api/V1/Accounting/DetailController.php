@@ -15,7 +15,7 @@ class DetailController extends Controller
     {
         $this->middleware('restrictBuildingManager:other')->except(['index']);
         // $this->middleware('hasModule:accounting-basic')->only(['index']);
-        $this->middleware('hasModule:accounting-advanced-1')->except(['index']);
+        $this->middleware('hasModule:accounting-advanced-qr')->except(['index']);
     }
 
     public function index()

@@ -14,8 +14,8 @@ class ReportController extends Controller
 
     public function __construct()
     {
-        $this->middleware('hasModule:accounting-advanced-1')->only(['journal', 'ledger']);
-        $this->middleware('hasModule:accounting-advanced-1')->only(['trialBalance', 'profitAndLoss', 'balanceSheet']);
+       $this->middleware('hasModule:accounting-advanced-qr')->only(['journal', 'ledger']);
+$this->middleware('hasModule:accounting-advanced-qr')->only(['trialBalance', 'profitAndLoss', 'balanceSheet']);
     }
 
     public function journal(Request $request)

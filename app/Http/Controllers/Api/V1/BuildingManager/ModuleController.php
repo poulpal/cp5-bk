@@ -73,10 +73,9 @@ class ModuleController extends Controller
 
         $modules = Module::whereIn('slug', $request->modules)->get();
         
-        // محاسبه قیمت
+        // محاسبه قیمت اولیه
         $price = $modules->sum('price');
-        $vat = $price * 0.1;
-
+       
         // بررسی تداخل و extra_days
         foreach ($modules as $module) {
             if ($activeModules->contains($module)) {
@@ -156,11 +155,14 @@ class ModuleController extends Controller
             }
         }
 
+        // اعمال تخفیف
         if ($discount_code) {
             $discount = $discount_code->type == 'fixed' ? $discount_code->value : round($price * $discount_code->value / 100);
             $price -= $discount;
         }
 
+        // محاسبه VAT روی قیمت نهایی (بعد از تخفیف)
+        $vat = round($price * 0.1);
         $price += $vat;
 
         // اگر پکیج رایگان بود (قیمت 0 یا با تخفیف 100%)
@@ -185,7 +187,8 @@ class ModuleController extends Controller
             
             // اگر پکیج اصلی خریداری شد، افزودنی‌های رایگان را هم فعال کن
             if ($selected_base_module) {
-                $freeAddons = Module::where('type', 'extra')->where('price', 0)->get();
+                $freeAddons = Module::whereIn('slug', ['accounting-basic', 'accounting-general', 'stocks', 'reserve-and-poll', 'fine-and-reward'])
+                    ->get();
                 foreach ($freeAddons as $addon) {
                     if (!$activeModules->contains($addon)) {
                         $building->modules()->attach($addon->slug, [
@@ -263,7 +266,9 @@ class ModuleController extends Controller
     public function checkDiscountCode(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'discount_code' => 'nullable|exists:discount_codes,code',
+            'modules' => 'nullable|array',
+            'modules.*' => 'nullable|exists:modules,slug',
+            'discount_code' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -275,6 +280,16 @@ class ModuleController extends Controller
 
         $user = auth()->buildingManager();
         $building = $user->building;
+        
+        // محاسبه قیمت اولیه
+        $original_price = 0;
+        if ($request->has('modules') && is_array($request->modules) && count($request->modules) > 0) {
+            $modules = Module::whereIn('slug', $request->modules)->get();
+            $original_price = $modules->sum('price');
+        }
+        
+        $price = $original_price;
+        $discount_amount = 0;
 
         $discount_code = DiscountCode::where('code', $request->discount_code)->first();
         if ($request->discount_code) {
@@ -313,13 +328,30 @@ class ModuleController extends Controller
                     ], 422);
                 }
             }
+            
+            // محاسبه تخفیف
+            if ($original_price > 0) {
+                $discount_amount = $discount_code->type == 'fixed' 
+                    ? $discount_code->value 
+                    : round($price * $discount_code->value / 100);
+                $price -= $discount_amount;
+            }
         }
+
+        // محاسبه VAT روی قیمت بعد از تخفیف
+        $vat = $price > 0 ? round($price * 0.1) : 0;
+        $final_price = $price + $vat;
 
         return response()->json([
             'success' => true,
             'data' => [
                 'type' => $discount_code->type ?? null,
                 'value' => $discount_code->value ?? null,
+                'original_price' => $original_price,
+                'discount_amount' => $discount_amount,
+                'price_after_discount' => $price,
+                'vat' => $vat,
+                'final_price' => $final_price,
             ]
         ]);
     }

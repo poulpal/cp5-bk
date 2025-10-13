@@ -65,13 +65,6 @@ class BuildingUnitController extends Controller
             $qrcode = Image::make(base64_encode(QrCode::format('png')->errorCorrection('H')->size(310)->margin(1)->backgroundColor(255, 255, 255)->color(0, 0, 0)->generate("https://c36.ir/b" . $unit->token)));
             $output = Image::make(public_path("img/qrcode_template.png"));
             $output->insert($qrcode, 'center', $x = 0, $y = -12);
-            // $output->text($unit->unit_number, 745, 1320, function ($font) {
-            //     $font->file(public_path('fonts/Inter-Bold.ttf'));
-            //     $font->size(80);
-            //     $font->color('#FFFFFF');
-            //     $font->align('center');
-            //     $font->valign('center');
-            // });
             $Arabic = new \ArPHP\I18N\Arabic();
             $text = $Arabic->utf8Glyphs($unit->unit_number);
             $output->text($unit->unit_number, 525, 805, function ($font) {
@@ -203,13 +196,9 @@ class BuildingUnitController extends Controller
                 'success' => false,
                 'message' => __("واحد قبلا اضافه شده است"),
             ], 400);
-
-            // $building_unit->charge_fee = $request->charge_fee;
-            // $building_unit->save();
         }
 
         $building_unit->residents()->attach($user->id, ['ownership' => $request->ownership]);
-        // $building_unit->residents()->attach($user->id, ['ownership' => 'owner']);
 
         Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com', 'poulpal33@poulpal.com'])->send(new CustomMail(
             'واحد جدید ثبت شد - ' . $building_unit->building->name,
@@ -272,7 +261,6 @@ class BuildingUnitController extends Controller
         }
 
         $building_manager = auth()->buildingManager();
-
         $units = $request->units;
 
         DB::connection('mysql')->beginTransaction();
@@ -300,14 +288,8 @@ class BuildingUnitController extends Controller
                     $user->save();
                 }
 
-                // if ($building_manager->building->units()->where('unit_number', $unit['unit_number'])->first()) {
-                //     throw new \Exception(__("واحد با شماره ") . $unit['unit_number'] . __(" قبلا به این ساختمان اضافه شده است"));
-                //     continue;
-                // }
-
                 if ($user->building_units()->where('building_id', auth()->buildingManager()->building->id)->where('unit_number', $unit['unit_number'])->first()) {
                     throw new \Exception(__("واحد با شماره ") . $unit['unit_number'] . __(" قبلا به این ساختمان اضافه شده است"));
-                    continue;
                 }
 
                 $trashed_unit = BuildingUnit::onlyTrashed()->where('building_id', auth()->buildingManager()->building->id)->where('unit_number', $unit['unit_number'])->first();
@@ -320,13 +302,10 @@ class BuildingUnitController extends Controller
                     $trashed_unit->save();
                     if ($trashed_unit->owner && $unit['ownership'] == 'owner') {
                         throw new \Exception(__("مالک قبلا به واحد ") . $unit['unit_number'] . __(" اضافه شده است"));
-                        continue;
                     }
                     if ($trashed_unit->renter && $unit['ownership'] == 'renter') {
                         throw new \Exception(__("مستاجر قبلا به واحد ") . $unit['unit_number'] . __(" اضافه شده است"));
-                        continue;
                     }
-                    // $trashed_unit->residents()->detach();
                     $this->detachResidents($trashed_unit, $trashed_unit->residents);
                     $trashed_unit->residents()->attach($user->id, ['ownership' => $unit['ownership']]);
                     continue;
@@ -345,33 +324,31 @@ class BuildingUnitController extends Controller
 
                 if ($building_unit->owner && $unit['ownership'] == 'owner') {
                     throw new \Exception(__("مالک قبلا به واحد ") . $unit['unit_number'] . __(" اضافه شده است "));
-                    continue;
                 }
 
                 if ($building_unit->renter && $unit['ownership'] == 'renter') {
                     throw new \Exception(__("مستاجر قبلا به واحد ") . $unit['unit_number'] . __(" اضافه شده است "));
-                    continue;
                 }
 
                 $building_unit->residents()->attach($user->id, ['ownership' => $unit['ownership']]);
             }
             DB::connection('mysql')->commit();
-
-            foreach ($units as $unit) {
-                $user = User::where('mobile', $unit['mobile'])->first();
-                $user->notify(new CustomNotification([
-                    'USER' => $user->full_name == __(" ") ? __("کاربر") : $user->full_name,
-                    'SECTION' => __("شارژپل"),
-                    'MANAGER' => auth()->buildingManager()->full_name,
-                ], 878597));
-            }
-
         } catch (\Exception $e) {
             DB::connection('mysql')->rollBack();
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+
+        // ارسال Notification بعد از commit موفق
+        foreach ($units as $unit) {
+            $user = User::where('mobile', $unit['mobile'])->first();
+            $user->notify(new CustomNotification([
+                'USER' => $user->full_name == __(" ") ? __("کاربر") : $user->full_name,
+                'SECTION' => __("شارژپل"),
+                'MANAGER' => auth()->buildingManager()->full_name,
+            ], 878597));
         }
 
         Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com', 'poulpal33@poulpal.com'])->send(new CustomMail(
@@ -472,11 +449,7 @@ class BuildingUnitController extends Controller
                 'message' => "Not found"
             ], 404);
         }
-        // $unit->residents()->detach($resident);
         $this->detachResidents($unit, User::where('id', $resident)->get());
-        // if ($unit->residents()->count() == 0) {
-        //     $unit->delete();
-        // }
         return response()->json([
             'success' => true,
             'message' => __("ساکن با موفقیت حذف شد"),
@@ -586,7 +559,6 @@ class BuildingUnitController extends Controller
             'debt_type_id' => 'nullable|exists:debt_types,id,building_id,' . auth()->buildingManager()->building->id,
             'debts' => 'required|array',
             'debts.*.unit_number' => 'required',
-            // 'debts.*.amount' => 'required|decimal:0,1|min:1',
             'debts.*.amount' => function ($attribute, $value, $fail) {
                 [$group, $position, $name] = explode('.', $attribute);
                 $position += 1;
@@ -621,17 +593,9 @@ class BuildingUnitController extends Controller
                 $unit = auth()->buildingManager()->building->units()->where('unit_number', $debt['unit_number'])->first();
                 if (!$unit) {
                     throw new \Exception(__("واحد ") . $debt['unit_number'] . __(" در ساختمان شما موجود نیست"));
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Not found"
-                    ], 404);
                 }
                 if(isset($debt['resident_type']) && $debt['resident_type'] == 'owner' && !$unit->owner){
                     throw new \Exception(__("مالک واحد ") . $debt['unit_number'] . __(" موجود نیست"));
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Not found"
-                    ], 404);
                 }
                 Invoice::create([
                     'building_id' => $unit->building->id,
@@ -658,7 +622,6 @@ class BuildingUnitController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
-
 
         return response()->json([
             'success' => true,
@@ -707,17 +670,9 @@ class BuildingUnitController extends Controller
                 $unit = auth()->buildingManager()->building->units()->where('unit_number', $deposit['unit_number'])->first();
                 if (!$unit) {
                     throw new \Exception(__("واحد ") . $deposit['unit_number'] . __(" در ساختمان شما موجود نیست"));
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Not found"
-                    ], 404);
                 }
                 if(isset($deposit['resident_type']) && $deposit['resident_type'] == 'owner' && !$unit->owner){
                     throw new \Exception(__("مالک واحد ") . $deposit['unit_number'] . __(" موجود نیست"));
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Not found"
-                    ], 404);
                 }
                 Invoice::create([
                     'building_id' => $unit->building->id,
@@ -744,7 +699,6 @@ class BuildingUnitController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
-
 
         return response()->json([
             'success' => true,
@@ -787,10 +741,6 @@ class BuildingUnitController extends Controller
                 $unit = auth()->buildingManager()->building->units()->where('unit_number', $charge['unit_number'])->first();
                 if (!$unit) {
                     throw new \Exception(__("واحد ") . $charge['unit_number'] . __(" در ساختمان شما موجود نیست"));
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Not found"
-                    ], 404);
                 }
                 $unit->charge_fee = $charge['amount'];
                 $unit->save();
@@ -808,7 +758,6 @@ class BuildingUnitController extends Controller
             'success' => true,
             'message' => 'شارژ های مورد نظر با موفقیت تغییر یافتند.',
         ], 200);
-
     }
 
     public function destroy($id)
@@ -879,7 +828,6 @@ class BuildingUnitController extends Controller
             ->whereIn('user_id', collect($residents)->pluck('id')->toArray())
             ->whereNull('deleted_at')
             ->get();
-
 
         $residents_records->each(function ($record) {
             DB::connection('mysql')

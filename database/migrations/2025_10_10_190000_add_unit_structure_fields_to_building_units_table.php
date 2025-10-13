@@ -8,31 +8,32 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // افزودن فیلدهای جدید به جدول building_units (همه غیراجباری)
         Schema::table('building_units', function (Blueprint $table) {
-            // طبقه (فقط عددی – nullable)
+            // طبقه
             if (!Schema::hasColumn('building_units', 'floor')) {
                 $table->integer('floor')->nullable()->after('area');
             }
-
-            // بلوک (عدد – nullable)
+            // بلوک (عدد اختیاری؛ اگر حروفی لازم شد بعداً string می‌شود)
             if (!Schema::hasColumn('building_units', 'block')) {
                 $table->integer('block')->nullable()->after('floor');
             }
-
-            // تلفن ثابت ایران (nullable)
+            // تعداد پارکینگ/انباری (اگر نبودند اضافه می‌کنیم)
+            if (!Schema::hasColumn('building_units', 'parking_count')) {
+                $table->integer('parking_count')->default(0)->after('resident_count');
+            }
+            if (!Schema::hasColumn('building_units', 'storage_count')) {
+                $table->integer('storage_count')->default(0)->after('parking_count');
+            }
+            // تلفن ثابت
             if (!Schema::hasColumn('building_units', 'landline_phone')) {
-                $table->string('landline_phone', 20)->nullable()->after('resident_count');
+                $table->string('landline_phone', 20)->nullable()->after('storage_count');
             }
-
-            // جای درج شماره‌های پارکینگ (CSV تمیز – nullable)
+            // لیست شماره‌های پارکینگ/انباری (CSV)
             if (!Schema::hasColumn('building_units', 'parking_numbers')) {
-                $table->string('parking_numbers')->nullable()->after('parking_count');
+                $table->text('parking_numbers')->nullable()->after('landline_phone');
             }
-
-            // جای درج شماره‌های انباری (CSV تمیز – nullable)
             if (!Schema::hasColumn('building_units', 'storage_numbers')) {
-                $table->string('storage_numbers')->nullable()->after('storage_count');
+                $table->text('storage_numbers')->nullable()->after('parking_numbers');
             }
         });
     }
@@ -48,6 +49,12 @@ return new class extends Migration
             }
             if (Schema::hasColumn('building_units', 'landline_phone')) {
                 $table->dropColumn('landline_phone');
+            }
+            if (Schema::hasColumn('building_units', 'storage_count')) {
+                $table->dropColumn('storage_count');
+            }
+            if (Schema::hasColumn('building_units', 'parking_count')) {
+                $table->dropColumn('parking_count');
             }
             if (Schema::hasColumn('building_units', 'block')) {
                 $table->dropColumn('block');

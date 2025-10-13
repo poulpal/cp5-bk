@@ -31,7 +31,7 @@ class SmsNotification extends Notification implements ShouldQueue
         $unit = $this->unit;
         $resident = $notifiable;
         $pattern = $this->pattern;
-        $link = 'c36.ir/b' . $unit->token;
+        $link = 'chargepal.ir/b' . $unit->token;
 
         $text = str_replace(
             ['{unit_number}', '{user_first_name}', '{user_last_name}', '{charge_amount_in_rial}', '{smsmessage_amount_in_rial}', '{unit_payment_link}'],

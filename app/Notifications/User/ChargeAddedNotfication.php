@@ -33,7 +33,7 @@ class ChargeAddedNotfication extends Notification implements ShouldQueue
                 'DEBT' => number_format($this->debt * 10) . ' ریال',
                 'SUBJECT' => $this->subject,
                 'RADIF' => 'پرداخت :',
-                'NUMBER' => 'c36.ir/b',
+                'NUMBER' => 'chargepal.ir/b',
                 'PROFILE' => $this->token,
             ]
         ];

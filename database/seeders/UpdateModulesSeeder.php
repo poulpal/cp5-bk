@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Module;
 use Illuminate\Database\Seeder;
+use App\Models\Module;
 
 class UpdateModulesSeeder extends Seeder
 {
@@ -14,103 +14,74 @@ class UpdateModulesSeeder extends Seeder
      */
     public function run()
     {
-        // حذف تمام ماژول‌های قبلی
+        // 1. Deleting all existing modules to start fresh
         Module::query()->delete();
 
-        // تعریف ماژول‌های جدید
+        // 2. Defining the new structure within the single 'modules' table
         $modules = [
-            // پکیج‌های اصلی (3 نوع با قیمت)
+            // Base Packages (Plans) stored as modules with type 'base'
             [
-                'title' => 'پکیج 10',
-                'slug' => 'base-10',
-                'order' => 1,
-                'type' => 'base',
-                'price' => 3900000, // 3,900 تومان
-                'features' => [
-                    'limit' => 10,
-                ],
-                'description' => 'پکیج پایه مدیریت ساختمان‌های تا 10 واحدی',
+                'title' => 'پکیج پایه (تا ۸ واحد)',
+                'slug' => 'plan-basic',
+                'type' => 'plan',
+                'price' => 3900000,
+                'description' => 'شامل تمام ماژول‌های اصلی برای ساختمان‌های کوچک',
+                'features' => json_encode(['max_units' => 8, 'max_managers' => 2]),
             ],
             [
-                'title' => 'پکیج 32',
-                'slug' => 'base-32',
-                'order' => 2,
-                'type' => 'base',
-                'price' => 5900000, // 5,900 تومان
-                'features' => [
-                    'limit' => 32,
-                ],
-                'description' => 'پکیج پایه مدیریت ساختمان‌های 11 تا 32 واحدی',
+                'title' => 'پکیج استاندارد (تا ۱۵ واحد)',
+                'slug' => 'plan-standard',
+                'type' => 'plan',
+                'price' => 5900000,
+                'description' => 'بهترین انتخاب برای مجتمع‌های متوسط',
+                'features' => json_encode(['max_units' => 15, 'max_managers' => 5]),
             ],
             [
-                'title' => 'پکیج بی نهایت',
-                'slug' => 'base-inf',
-                'order' => 3,
-                'type' => 'base',
-                'price' => 9900000, // 9,900 تومان
-                'features' => [
-                    'limit' => 500000,
-                ],
-                'description' => 'پکیج پایه مدیریت ساختمان‌های بزرگ و شهرک',
+                'title' => 'پکیج حرفه‌ای (بیش از ۱۵ واحد)',
+                'slug' => 'plan-professional',
+                'type' => 'plan',
+                'price' => 9900000,
+                'description' => 'برای برج‌ها و مجتمع‌های بزرگ با تمام امکانات',
+                'features' => json_encode(['max_units' => 1000, 'max_managers' => 10]), // Using a high number for "unlimited"
+            ],
+
+            // Core Add-ons (Included for free, but defined as separate modules)
+            [
+                'title' => 'حسابداری عمومی و پایه',
+                'slug' => 'accounting-core',
+                'type' => 'core_module',
+                'price' => 0,
+                'description' => 'شامل انبارداری، رزرو، انتخابات، نظرسنجی و مدیریت مشاعات',
             ],
             
-            // افزودنی‌های رایگان
+            // Paid Add-on Modules
             [
-                'title' => 'حسابداری پایه',
-                'slug' => 'accounting-basic',
-                'order' => 4,
-                'type' => 'extra',
-                'price' => 0,
-                'description' => 'ثبت سند اتوماتیک، مشاهده اسناد',
+                'title' => 'حسابداری پیشرفته و QR Code',
+                'slug' => 'addon-advanced-accounting',
+                'type' => 'addon',
+                'price' => 6900000,
+                'description' => 'شامل حسابداری پیشرفته و پرداخت سریع با QR Code',
             ],
             [
-                'title' => 'حسابداری عمومی',
-                'slug' => 'accounting-general',
-                'order' => 5,
-                'type' => 'extra',
-                'price' => 0,
-                'description' => 'ثبت سند دستی، ایجاد لینک پرداخت',
+                'title' => 'پشتیبانی ساکنین (تیکتینگ)',
+                'slug' => 'addon-support',
+                'type' => 'addon',
+                'price' => 1900000,
+                'description' => 'سیستم تیکتینگ برای ارتباط مستقیم ساکنین با مدیریت',
             ],
             [
-                'title' => 'انبارداری',
-                'slug' => 'stocks',
-                'order' => 6,
-                'type' => 'extra',
-                'price' => 0,
-                'description' => 'انبارداری',
-            ],
-            [
-                'title' => 'نظرسنجی و رزرو',
-                'slug' => 'reserve-and-poll',
-                'order' => 7,
-                'type' => 'extra',
-                'price' => 0,
-                'description' => 'نظرسنجی، انتخابات، رزرو مشاعات',
-            ],
-            [
-                'title' => 'جریمه و تخفیف',
-                'slug' => 'fine-and-reward',
-                'order' => 8,
-                'type' => 'extra',
-                'price' => 0,
-                'description' => 'اعمال اتوماتیک جریمه دیرکرد و تخفیف خوشحسابی',
-            ],
-            
-            // حسابداری پیشرفته (با قیمت)
-            [
-                'title' => 'حسابداری پیشرفته',
-                'slug' => 'accounting-advanced',
-                'order' => 9,
-                'type' => 'accounting',
-                'price' => 6900000, // 6,900 تومان
-                'description' => 'تغییر کدینگ، گزارش پیشرفته، ترازنامه، صورت سود و زیان',
+                'title' => 'هوش مصنوعی برای ساکنین',
+                'slug' => 'addon-ai-assistant',
+                'type' => 'addon',
+                'price' => 1900000,
+                'description' => 'دستیار هوشمند برای پاسخگویی به سوالات متداول ساکنین',
             ],
         ];
 
-        foreach ($modules as $module) {
-            Module::create($module);
+        foreach ($modules as $moduleData) {
+            Module::create($moduleData);
         }
-
-        $this->command->info('Modules updated successfully!');
+        
+        $this->command->info('The modules and plans structure has been seeded successfully into the modules table!');
     }
 }

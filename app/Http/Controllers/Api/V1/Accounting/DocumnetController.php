@@ -19,7 +19,7 @@ class DocumnetController extends Controller
     {
         $this->middleware('restrictBuildingManager:other')->except(['index', 'show', 'getNewDocumentNumber']);
         $this->middleware('hasModule:accounting-basic')->only(['index', 'show', 'getNewDocumentNumber']);
-        $this->middleware('hasModule:accounting-advanced-1')->except(['index', 'show', 'getNewDocumentNumber']);
+$this->middleware('hasModule:accounting-advanced-qr')->except(['index', 'show', 'getNewDocumentNumber']);
     }
 
     public function getNewDocumentNumber(Request $request)
