@@ -191,9 +191,21 @@ Route::name('v1.')->group(function () {
         Route::get('stats', [BuildingManagerProfileController::class, 'stats'])->name('profile.stats');
         Route::post('sendContractOtp', [BuildingManagerProfileController::class, 'sendContractOtp'])->name('profile.sendContractOtp');
         Route::post('verifyContractOtp', [BuildingManagerProfileController::class, 'verifyContractOtp'])->name('profile.verifyContractOtp');
-
+ Route::post('building_manager/proforma', [ProformaController::class, 'store'])
+        ->name('v1.building_manager.proforma.store');
         Route::prefix('factors')->name('factors.')->group(function () {
             Route::get('/', [BuildingManagerFactorController::class, 'index'])->name('index');
+             // پیش‌نمایش (بدون ذخیره) → JSON یا ?format=html
+    Route::post('building_manager/proforma/preview', [ProformaController::class, 'preview'])
+        ->name('v1.building_manager.proforma.preview');
+
+    // HTML رکورد ذخیره‌شده
+    Route::get('building_manager/proforma/{id}/html', [ProformaController::class, 'showHtml'])
+        ->name('v1.building_manager.proforma.html');
+
+    // PDF رکورد ذخیره‌شده
+    Route::get('building_manager/proforma/{id}/pdf', [ProformaController::class, 'showPdf'])
+        ->name('v1.building_manager.proforma.pdf');
         });
 
         Route::apiResource('units', BuildingManagerBuildingUnitController::class);
@@ -329,3 +341,4 @@ Route::name('v1.')->group(function () {
         });
     });
 });
+
