@@ -148,21 +148,59 @@ class TollController extends Controller
             'description' => 'required',
             'date' => 'required|date',
             'resident_type' => 'required|in:owner,resident',
+            'send_sms' => 'nullable|boolean', // ✅ پارامتر برای ارسال SMS
         ]);
+        
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors(),
             ], 422);
         }
-        $unit = auth()->buildingManager()->building->units()->where('id', $id)->first();
+        
+        $building = auth()->buildingManager()->building;
+        $unit = $building->units()->where('id', $id)->first();
+        
         if (!$unit) {
             return response()->json([
                 'success' => false,
-                'message' => "Not found"
+                'message' => "واحد یافت نشد"
             ], 404);
         }
-        $unit->tolls()->create([
+        
+        // ✅ بررسی اعتبار SMS اگر ارسال فعال باشد
+        // طول پیامک معمولاً 2-3 واحد است، ما حداقل 3 واحد چک می‌کنیم
+        $minSmsCredits = 3; // حداقل برای اطمینان
+        
+        if ($request->send_sms) {
+            // تشخیص مخاطب بر اساس resident_type
+            $recipient = $request->resident_type === 'owner' ? $unit->owner : ($unit->renter ?? $unit->owner);
+            
+            if (!$recipient) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'مخاطبی برای ارسال پیامک یافت نشد. لطفا ابتدا ساکن یا مالک واحد را تعریف کنید.'
+                ], 422);
+            }
+            
+            if (!$recipient->mobile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'شماره موبایل مخاطب ثبت نشده است.'
+                ], 422);
+            }
+            
+            // ✅ بررسی موجودی SMS (حداقل 3 واحد)
+            if ($building->sms_balance < $minSmsCredits) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "موجودی پیامک کافی نیست. موجودی فعلی: {$building->sms_balance}، حداقل مورد نیاز: {$minSmsCredits}"
+                ], 422);
+            }
+        }
+        
+        // ✅ ایجاد لینک پرداخت (Toll)
+        $toll = $unit->tolls()->create([
             'building_id' => $unit->building->id,
             'amount' => $request->amount,
             'payment_method' => 'cash',
@@ -172,10 +210,77 @@ class TollController extends Controller
             'resident_type' => $request->resident_type,
             'created_at' => Carbon::parse($request->date),
         ]);
+        
+        $smsWasSent = false;
+        $actualSmsUnits = 0; // ✅ متغیر برای نگهداری واحدهای استفاده شده
+        $landingUrl = config('app.landing_url', env('VITE_LANDING_URL', 'https://chargepal.ir'));
+        
+        // ✅ فرمت کردن مبلغ برای نمایش در پیامک
+        $amountInRial = $request->amount * 10;
+        $formattedAmount = number_format($amountInRial, 0, '', ','); // 5,000,000
+        
+        // ✅ ارسال SMS با متن ساده اگر فعال باشد
+        if ($request->send_sms) {
+            $recipient = $request->resident_type === 'owner' ? $unit->owner : ($unit->renter ?? $unit->owner);
+            
+            // ✅ ساخت متن پیامک
+            $smsText = "سلام";
+            if ($recipient->first_name) {
+                $smsText .= " " . $recipient->first_name;
+            }
+            $smsText .= "\n";
+            $smsText .= "واحد {$unit->unit_number} - {$building->name}\n";
+            $smsText .= "مبلغ: {$formattedAmount} ریال\n";
+            $smsText .= "{$request->description}\n";
+            $smsText .= "لینک پرداخت:\n{$landingUrl}/p/{$toll->token}";
+            
+            // ✅ محاسبه طول واقعی پیامک (هر 70 کاراکتر = 1 واحد)
+            $textLength = mb_strlen($smsText);
+            $actualSmsUnits = max(1, ceil($textLength / 70));
+            
+            try {
+                // ✅ ارسال SMS
+                $recipient->notify(new \App\Notifications\User\TollPaymentLinkNotification(
+                    $unit,
+                    $toll,
+                    $building->name,
+                    $formattedAmount,
+                    $request->description
+                ));
+                
+                // ✅ کسر طول واقعی از اعتبار SMS ساختمان
+                $building->sms_balance -= $actualSmsUnits;
+                $building->save();
+                
+                // ✅ ثبت در جدول sms_messages برای تاریخچه
+                \App\Models\SmsMessage::create([
+                    'building_id' => $building->id,
+                    'pattern' => "لینک پرداخت - واحد {$unit->unit_number} - طول: {$textLength} کاراکتر",
+                    'units' => [$unit->id],
+                    'length' => $actualSmsUnits, // طول واقعی (2-3 واحد معمولاً)
+                    'count' => 1, // تعداد مخاطب
+                    'resident_type' => $request->resident_type,
+                    'status' => 'sent',
+                ]);
+                
+                $smsWasSent = true;
+                
+            } catch (\Exception $e) {
+                // در صورت خطا در ارسال SMS، لاگ می‌کنیم اما لینک پرداخت ایجاد شده است
+                \Log::error('Error sending toll payment SMS: ' . $e->getMessage());
+                \Log::error('Stack trace: ' . $e->getTraceAsString());
+            }
+        }
 
         return response()->json([
             'success' => true,
-            'message' => __("فاکتور با موفقیت اضافه شد"),
+            'message' => __("لینک پرداخت با موفقیت ایجاد شد") . ($smsWasSent ? " و پیامک ارسال گردید." : "."),
+            'data' => [
+                'toll_id' => $toll->id,
+                'payment_link' => $landingUrl . '/p/' . $toll->token,
+                'sms_sent' => $smsWasSent,
+                'sms_credits_used' => $actualSmsUnits, // ✅ واحدهای واقعی استفاده شده
+            ]
         ], 201);
     }
 
@@ -203,40 +308,149 @@ class TollController extends Controller
             'tolls.*.description' => 'required',
             'tolls.*.date' => 'nullable|date',
             'resident_type' => 'required|in:owner,resident',
+            'send_sms' => 'nullable|boolean', // ✅ پارامتر جدید
         ]);
+        
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors(),
             ], 422);
         }
+        
+        $building = auth()->buildingManager()->building;
         $date_format = 'Y/m/d';
+        
+        // ✅ تخمین حداقل 3 واحد برای هر پیامک
+        $estimatedCreditsPerMessage = 3;
+        
+        // ✅ بررسی موجودی SMS اگر ارسال فعال باشد
+        if ($request->send_sms) {
+            $recipientCount = 0;
+            foreach ($request->tolls as $tollData) {
+                $unit = $building->units()->where('unit_number', $tollData['unit_number'])->first();
+                if ($unit) {
+                    $recipient = $request->resident_type === 'owner' ? $unit->owner : ($unit->renter ?? $unit->owner);
+                    if ($recipient && $recipient->mobile) {
+                        $recipientCount++;
+                    }
+                }
+            }
+            
+            if ($recipientCount == 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'هیچ مخاطبی با شماره موبایل معتبر برای ارسال پیامک یافت نشد.'
+                ], 422);
+            }
+            
+            // ✅ محاسبه اعتبار تخمینی
+            $estimatedCredits = $recipientCount * $estimatedCreditsPerMessage;
+            
+            if ($building->sms_balance < $estimatedCredits) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "موجودی پیامک کافی نیست. موجودی فعلی: {$building->sms_balance}، تخمین مورد نیاز: {$estimatedCredits} ({$recipientCount} مخاطب × {$estimatedCreditsPerMessage})"
+                ], 422);
+            }
+        }
 
         DB::connection('mysql')->beginTransaction();
 
         try {
-            foreach ($request->tolls as $toll) {
-                $unit = auth()->buildingManager()->building->units()->where('unit_number', $toll['unit_number'])->first();
+            $createdTolls = [];
+            $smsCount = 0;
+            $totalCreditsUsed = 0; // ✅ مجموع اعتبار استفاده شده
+            $landingUrl = config('app.landing_url', env('VITE_LANDING_URL', 'https://chargepal.ir'));
+            
+            foreach ($request->tolls as $tollData) {
+                $unit = $building->units()->where('unit_number', $tollData['unit_number'])->first();
+                
                 if (!$unit) {
-                    throw new \Exception(__("واحد ") . $toll['unit_number'] . __(" در ساختمان شما موجود نیست"));
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Not found"
-                    ], 404);
+                    throw new \Exception(__("واحد ") . $tollData['unit_number'] . __(" در ساختمان شما موجود نیست"));
                 }
-                Toll::create([
+                
+                // ایجاد Toll
+                $toll = Toll::create([
                     'building_id' => $unit->building->id,
-                    'amount' => $toll['amount'],
+                    'amount' => $tollData['amount'],
                     'payment_method' => 'cash',
                     'serviceable_type' => 'App\Models\BuildingUnit',
                     'serviceable_id' => $unit->id,
                     'resident_type' => $request->resident_type,
-                    'description' => $toll['description'],
-                    'created_at' => isset($toll['date']) ? Jalalian::fromFormat($date_format, $toll['date'])->toCarbon() : Carbon::now(),
-                    'updated_at' => isset($toll['date']) ? Jalalian::fromFormat($date_format, $toll['date'])->toCarbon() : Carbon::now(),
+                    'description' => $tollData['description'],
+                    'created_at' => isset($tollData['date']) ? Jalalian::fromFormat($date_format, $tollData['date'])->toCarbon() : Carbon::now(),
+                    'updated_at' => isset($tollData['date']) ? Jalalian::fromFormat($date_format, $tollData['date'])->toCarbon() : Carbon::now(),
+                ]);
+                
+                $createdTolls[] = [
+                    'unit' => $unit,
+                    'toll' => $toll,
+                ];
+                
+                // ✅ ارسال SMS با متن ساده اگر فعال باشد
+                if ($request->send_sms) {
+                    $recipient = $request->resident_type === 'owner' ? $unit->owner : ($unit->renter ?? $unit->owner);
+                    
+                    if ($recipient && $recipient->mobile) {
+                        // ✅ فرمت کردن مبلغ به ریال با جداکننده
+                        $amountInRial = $tollData['amount'] * 10;
+                        $formattedAmount = number_format($amountInRial, 0, '', ','); // 5,000,000
+                        
+                        try {
+                            // ✅ محاسبه طول پیامک برای این واحد
+                            $smsText = "سلام";
+                            if ($recipient->first_name) {
+                                $smsText .= " " . $recipient->first_name;
+                            }
+                            $smsText .= "\n";
+                            $smsText .= "واحد {$unit->unit_number} - {$building->name}\n";
+                            $smsText .= "مبلغ: {$formattedAmount} ریال\n";
+                            $smsText .= "{$tollData['description']}\n";
+                            $smsText .= "لینک پرداخت:\n{$landingUrl}/p/{$toll->token}";
+                            
+                            $textLength = mb_strlen($smsText);
+                            $smsUnits = max(1, ceil($textLength / 70));
+                            
+                            // ✅ ارسال SMS
+                            $recipient->notify(new \App\Notifications\User\TollPaymentLinkNotification(
+                                $unit,
+                                $toll,
+                                $building->name,
+                                $formattedAmount,
+                                $tollData['description']
+                            ));
+                            
+                            $smsCount++;
+                            $totalCreditsUsed += $smsUnits; // واحد واقعی این پیامک
+                            
+                        } catch (\Exception $e) {
+                            \Log::error('Error sending toll SMS for unit ' . $unit->unit_number . ': ' . $e->getMessage());
+                            \Log::error('Stack trace: ' . $e->getTraceAsString());
+                        }
+                    }
+                }
+            }
+            
+            // ✅ کسر از اعتبار SMS (مجموع واقعی)
+            if ($request->send_sms && $totalCreditsUsed > 0) {
+                $building->sms_balance -= $totalCreditsUsed;
+                $building->save();
+                
+                // ✅ ثبت در لاگ SMS
+                \App\Models\SmsMessage::create([
+                    'building_id' => $building->id,
+                    'pattern' => "لینک پرداخت گروهی - {$smsCount} واحد",
+                    'units' => collect($createdTolls)->pluck('unit.id')->toArray(),
+                    'length' => $totalCreditsUsed, // مجموع اعتبار استفاده شده
+                    'count' => $smsCount, // تعداد مخاطبان
+                    'resident_type' => $request->resident_type,
+                    'status' => 'sent',
                 ]);
             }
+            
             DB::connection('mysql')->commit();
+            
         } catch (\Exception $e) {
             DB::connection('mysql')->rollBack();
             return response()->json([
@@ -245,10 +459,19 @@ class TollController extends Controller
             ], 500);
         }
 
+        $message = 'لینک پرداخت با موفقیت ایجاد شد.';
+        if ($request->send_sms && $smsCount > 0) {
+            $message .= " تعداد {$smsCount} پیامک ارسال شد ({$totalCreditsUsed} واحد اعتبار).";
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'فاکتور های مورد نظر با موفقیت افزوده شد.',
+            'message' => $message,
+            'data' => [
+                'total_tolls' => count($createdTolls),
+                'sms_sent' => $smsCount,
+                'sms_credits_used' => $totalCreditsUsed, // ✅ مجموع اعتبار
+            ]
         ], 200);
     }
 

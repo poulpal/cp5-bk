@@ -1,11 +1,29 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\Billing\ProformaInvoiceController;
+use App\Http\Controllers\Api\V1\BuildingManager\ProformaController;
 
-// توجه: این فایل داخل گروه prefix('v1') لود می‌شود؛ لذا اینجا دیگر prefix('v1') نمی‌زنیم.
-
-Route::post('proforma', [ProformaInvoiceController::class, 'store'])->name('proforma.store');
-Route::get('proforma/{id}', [ProformaInvoiceController::class, 'show'])->name('proforma.show');
-Route::get('proforma/{id}/html', [ProformaInvoiceController::class, 'html'])->name('proforma.html');
-Route::get('proforma/{id}/pdf', [ProformaInvoiceController::class, 'pdf'])->name('proforma.pdf');
+Route::middleware(['auth:api', 'api'])->group(function () {
+    Route::prefix('v1/building_manager')->group(function () {
+        
+        // Proforma routes
+        Route::prefix('proforma')->group(function () {
+            
+            // Preview (calculate without saving)
+            Route::post('/preview', [ProformaController::class, 'preview'])
+                ->name('proforma.preview');
+            
+            // Create (calculate and save)
+            Route::post('/', [ProformaController::class, 'store'])
+                ->name('proforma.store');
+            
+            // Get proforma by ID
+            Route::get('/{id}', [ProformaController::class, 'show'])
+                ->name('proforma.show');
+            
+            // Export as HTML
+            Route::get('/{id}/html', [ProformaController::class, 'html'])
+                ->name('proforma.html');
+        });
+    });
+});

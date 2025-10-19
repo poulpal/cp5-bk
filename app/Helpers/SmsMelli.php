@@ -1,68 +1,54 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Notifications\User;
 
-use Coduo\PHPHumanizer\NumberHumanizer;
-use Illuminate\Support\Str;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Notification;
 
-class SmsMelli
+class TollPaymentLinkNotification extends Notification implements ShouldQueue
 {
-    public function send($mobile, $text)
+    use Queueable;
+
+    public $unit;
+    public $toll;
+    public $buildingName;
+    public $amount;
+    public $description;
+
+    public function __construct($unit, $toll, $buildingName, $amount, $description)
     {
-        $this->CallAPI($mobile, $text);
+        $this->unit = $unit;
+        $this->toll = $toll;
+        $this->buildingName = $buildingName;
+        $this->amount = $amount;
+        $this->description = $description;
     }
 
-    public function getCredit()
+    public function via($notifiable)
     {
-        return $this->CallAPIData()['result']['credit'];
+        return ['smsmelli']; // ✅ mysmsapi.ir
     }
 
-    private function CallAPI($mobile, $msg)
+    public function toSmsMelli($notifiable)
     {
-        $parameters = array(
-            'uname' => 'arcenciel',
-            'pass' => 'D8h8hHD',
-            'from' => '+985000144411',
-            'to' => array($mobile),
-            'msg' => $msg,
-        );
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_POST, 1);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($parameters));
+        // ساخت لینک پرداخت
+        $landingUrl = config('app.landing_url', 'https://chargepal.ir');
+        $paymentLink = $landingUrl . '/p/' . $this->toll->token;
 
-        // Optional Authentication:
-        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        curl_setopt($curl, CURLOPT_USERPWD, "username:password");
+        // ساخت متن پیامک
+        $text = "سلام";
+        if ($notifiable->first_name) {
+            $text .= " " . $notifiable->first_name;
+        }
+        $text .= "\n";
+        $text .= "واحد {$this->unit->unit_number} - {$this->buildingName}\n";
+        $text .= "مبلغ: {$this->amount} ریال\n";
+        $text .= "{$this->description}\n";
+        $text .= "لینک پرداخت:\n{$paymentLink}";
 
-        curl_setopt($curl, CURLOPT_URL, 'http://mysmsapi.ir/class/sms/restful/sendSms_OneToMany.php');
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-
-        $result = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($result, true);
-    }
-
-    private function CallAPIData()
-    {
-        $parameters = array(
-            'uname' => 'arcenciel',
-            'pass' => '0CB8fceD',
-        );
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_POST, 1);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($parameters));
-
-        // Optional Authentication:
-        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        curl_setopt($curl, CURLOPT_USERPWD, "username:password");
-
-        curl_setopt($curl, CURLOPT_URL, 'http://mysmsapi.ir/class/sms/restful/getData.php');
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-
-        $result = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($result, true);
+        return [
+            'text' => $text, // ✅ فرمت صحیح
+        ];
     }
 }

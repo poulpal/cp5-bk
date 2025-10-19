@@ -33,9 +33,9 @@ class Kernel extends ConsoleKernel
 
         // $schedule->job(new RefreshUSDPrice)->dailyAt("00:00");
 
-        $schedule->command('backup:clean')->daily()->at('02:00');
-        $schedule->command('backup:run')->daily()->at('03:00');
-        $schedule->command('backup:run --only-db')->hourly();
+        // $schedule->command('backup:clean')->daily()->at('02:00');
+        // $schedule->command('backup:run')->daily()->at('03:00');
+        // $schedule->command('backup:run --only-db')->hourly();
 
         $schedule->job(new AccepetSmsMessages)->everyTenMinutes();
     }

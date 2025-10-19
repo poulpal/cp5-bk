@@ -73,6 +73,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Landing Page URL (for Payment Links)
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used for generating payment links that will be sent to users.
+    | This should be the public-facing domain where users can access payment pages.
+    |
+    */
+
+    'landing_url' => env('LANDING_URL', 'https://chargepal.ir'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

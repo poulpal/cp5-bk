@@ -59,6 +59,7 @@ use App\Http\Controllers\Api\V1\Accounting\AccountController as AccountingAccoun
 use App\Http\Controllers\Api\V1\Accounting\DetailController as AccountingDetailController;
 use App\Http\Controllers\Api\V1\Accounting\DocumnetController as AccountingDocumentController;
 use App\Http\Controllers\Api\V1\Accounting\ReportController as AccountingReportController;
+use App\Http\Controllers\Api\V1\BuildingManager\FeatureController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -202,6 +203,8 @@ Route::name('v1.')->group(function () {
     // HTML رکورد ذخیره‌شده
     Route::get('building_manager/proforma/{id}/html', [ProformaController::class, 'showHtml'])
         ->name('v1.building_manager.proforma.html');
+Route::get('features', [FeatureController::class, 'index']);
+Route::post('features/{code}/purchase', [FeatureController::class, 'purchase']);
 
     // PDF رکورد ذخیره‌شده
     Route::get('building_manager/proforma/{id}/pdf', [ProformaController::class, 'showPdf'])
