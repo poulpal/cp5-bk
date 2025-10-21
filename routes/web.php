@@ -84,7 +84,7 @@ Route::get('blog_admin_3713cb77-e467-4894-b4b2-9afc30b164e6', function () {
 
 
 Route::get('arsvz/1378/test', function () {
-    // Mail::to(['sales@cc2com.com', 'cc2com.com@gmail.com'])->send(new CustomMail('test', 'test'));
+    // Mail::to(['cc2com.com@gmail.com'])->send(new CustomMail('test', 'test'));
     // $month = request('month') ?? 1;
     // $year = request('year') ?? 1403;
     // $month = str_pad($month, 2, '0', STR_PAD_LEFT);

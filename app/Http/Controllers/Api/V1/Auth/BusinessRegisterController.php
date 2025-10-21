@@ -143,7 +143,7 @@ class BusinessRegisterController extends Controller
                 'plan_duration' => '7',
                 'plan_expires_at' => now()->addDays(7)->endOfDay(),
                 // 'is_verified' => 1, // TODO: remove after promotion
-                'signed_contract' => 0,
+                'signed_contract' => 1,
                 'unit_count' => $request->unit_count ?? 1,
             ]);
 
@@ -184,11 +184,11 @@ class BusinessRegisterController extends Controller
 
         if (config('app.type') == 'main') {
             $building_manager->notify(new RegisterCompleted());
-            // try {
-            //     $building_manager->notify((new RegisterVerified())->delay(now()->addMinutes(rand(10, 20)))); // TODO: remove after promotion
-            // } catch (\Exception $e) {
-            //     Log::error($e->getMessage());
-            // }
+            try {
+                $building_manager->notify((new RegisterVerified())->delay(now()->addMinutes(rand(10, 20)))); // TODO: remove after promotion
+            } catch (\Exception $e) {
+                Log::error($e->getMessage());
+            }
         }
         $details = $building_manager->details;
 

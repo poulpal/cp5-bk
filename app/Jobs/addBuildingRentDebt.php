@@ -124,7 +124,7 @@ class addBuildingRentDebt
                 }
             }
 
-            Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com', 'Shaqayeq.shafiee1370@yahoo.com'])->send(
+            Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com', 'Shaqayeq.shafiee1370@yahoo.com'])->send(
                 new CustomMail(
                     'پرداخت شارژ از کیف پول - ساختمان : ' . $unit->building->name . " - " . $invoice->id ?? "",
                     "نام ساختمان : " . $unit->building->name . "<br>" .

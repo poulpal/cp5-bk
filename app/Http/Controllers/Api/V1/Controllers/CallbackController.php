@@ -534,7 +534,7 @@ class CallbackController extends Controller
                 $commission->status = 'paid';
                 $commission->save();
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'پرداخت شارژ - ساختمان : ' . $unit->building->name . " - " . $invoice->payment_tracenumber ?? "",
                         "نام ساختمان : " . $unit->building->name . "<br>" .
@@ -569,7 +569,7 @@ class CallbackController extends Controller
                     $units_string .= 'واحد ' . $unit->unit_number . " - ساختمان:" . $unit->building->name . "<br>";
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'افزایش موجودی کیف پول - ' . $invoice->payment_tracenumber ?? "",
                         "نام کاربر : " . $invoice->user->full_name . "<br>" .
@@ -603,7 +603,7 @@ class CallbackController extends Controller
                     $commission->save();
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'پرداخت رزرو - ساختمان : ' . $reservation->reservable->building->name . " - " . $invoice->payment_tracenumber ?? "",
                         "نام ساختمان : " . $reservation->reservable->building->name . "<br>" .
@@ -648,7 +648,7 @@ class CallbackController extends Controller
                     $commission->save();
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'پرداخت عوارض - ساختمان : ' . $toll->unit->building->name . " - " . $invoice->payment_tracenumber ?? "",
                         "نام ساختمان : " . $toll->unit->building->name . "<br>" .
@@ -687,7 +687,7 @@ class CallbackController extends Controller
                     $commission->save();
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'خرید پلن - ساختمان : ' . $invoice->building->name . " - " . $invoice->payment_tracenumber ?? "",
                         "نام ساختمان : " . $invoice->building->name . "<br>" .
@@ -736,7 +736,7 @@ class CallbackController extends Controller
                     $commission->save();
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'خرید ماژول - ساختمان : ' . $invoice->building->name . " - " . $invoice->payment_tracenumber ?? "",
                         "نام ساختمان : " . $invoice->building->name . "<br>" .
@@ -766,7 +766,7 @@ class CallbackController extends Controller
                     $commission->save();
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'شارژ SMS - ساختمان : ' . $invoice->building->name . " - " . $invoice->payment_tracenumber ?? "",
                         "نام ساختمان : " . $invoice->building->name . "<br>" .
@@ -793,7 +793,7 @@ class CallbackController extends Controller
                     $units_string .= 'واحد ' . $unit->unit_number . " - ساختمان:" . $unit->building->name . "<br>";
                 }
 
-                Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+                Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                     new CustomMail(
                         'پرداخت خیریه - ' . $invoice->payment_tracenumber ?? "",
                         "نام کاربر : " . $invoice->user->full_name . "<br>" .

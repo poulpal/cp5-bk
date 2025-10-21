@@ -375,7 +375,7 @@ class ProfileController extends Controller
                 );
             }
 
-            Mail::to(['sales@cc2com.com', 'arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
+            Mail::to(['arcenciel.ir@gmail.com', 'saman.moayeri@gmail.com'])->send(
                 new ContractMail(
                     auth()->buildingManager()->building,
                     auth()->buildingManager()->building->mainBuildingManagers->first(),
